@@ -107,19 +107,45 @@ class BackupMain(object):
             Toolkit.send_mail()
             sys.exit(1)
 
-    def xtrabackup(self):
-        """使用Xtrabckup备份文件
+    def create_backup_tool(self):
+        """更具选择的备份工具创建相关备份实例
+        # 1、mysqldump, 2、mysqlpump, 3、mydumper, 4、xtrabackup
         """
-        # 是否有保存my_cnf来创建Xtrabackup实例
-        self.backup_tool = Xtrabackup(self.backup_name,
-                  self.backup_dir,
-                  backup_bin_file = self.backup_instance.backup_tool_file,
-                  my_cnf = self.instance_info.my_cnf_path)
-            
-        ToolLog.log_info('use backup tool is: {tool}'.format(
-                                  tool = self.backup_instance.backup_tool_file))
 
+        if self.backup_instance.backup_tool == 1: # mysqldump
+            self.backup_tool = Mysqldump(self.backup_name,
+                 self.backup_dir,
+                 backup_bin_file = self.backup_instance.backup_tool_file,
+                 my_cnf = self.instance_info.my_cnf_path)
+
+        elif self.backup_instance.backup_tool == 2: # mysqlpump
+            pass
+        elif self.backup_instance.backup_tool == 3: # mydumper
+            pass
+        elif self.backup_instance.backup_tool == 4: # xtrabackup
+            self.backup_tool = Xtrabackup(self.backup_name,
+                      self.backup_dir,
+                      backup_bin_file = self.backup_instance.backup_tool_file,
+                      my_cnf = self.instance_info.my_cnf_path)
+
+        else: # 如果没有备份工具 则退出失败
+            ToolLog.log_error('!!!can not find backup tool!!!')
+            ToolLog.log_error('sys exit.')
+            # 记录备份失败信息
+            update_info = {'message': '没有找到相应的备份工具'}
+            is_ok, self.backup_info = self.update_backup_info(update_info)
+
+            Toolkit.send_mail()
+            sys.exit(1)
+                
+        # 记录使用的备份工具
+        ToolLog.log_info('use backup tool is: {tool}'.format(
+                                tool = self.backup_instance.backup_tool_file))
+        return self.backup_tool
         
+    def backup_data(self):
+        """使用Xtrabckup备份数据
+        """
         # 开始执行备份
         is_ok = self.backup_tool.backup_data(
                         param = self.backup_instance.backup_tool_param,
@@ -288,14 +314,12 @@ class BackupMain(object):
 
         return is_ok
         
-    def run_xtrabackup(self):
+    def run_backup(self):
         """运行Xtrabackup的相关备份流程
         """
         # 1 备份数据
-        backup_data_is_ok = self.xtrabackup()
+        backup_data_is_ok = self.backup_data()
         if not backup_data_is_ok: # 备份失败
-            update_info = {'backup_status': 4}
-            self.update_backup_info(update_info)
             return backup_data_is_ok
 
         # 2 备份 binlog 
@@ -313,46 +337,29 @@ class BackupMain(object):
         self.update_backup_info(update_info)
 
         # 6 发送备份数据至远程
-        send_data_is_ok = self.send_data()
+        send_data_is_ok, remote_file = self.send_data()
 
         # 7 发送备份binlog值远程
-        send_binlog_is_ok = self.send_binlog()
+        send_binlog_is_ok, remote_binlog = self.send_binlog()
 
         # 8 更新备份状态信息
         update_info = {'backup_status': 3} # 初始设置为备份完成
 
         # 如果遇到备份返回信息和指定的备份形式不一样则设置为备份完成但和指定的有差异
         if (backup_binlog_is_ok != self.backup_instance.is_binlog or
-            compress_is_ok == self.backup_instance.is_compress or
-            send_data_is_ok == self.backup_instance.is_to_remote or
-            send_binlog_is_ok == self.backup_instance.is_to_remote):
+            compress_is_ok != self.backup_instance.is_compress or
+            send_data_is_ok != self.backup_instance.is_to_remote or
+            send_binlog_is_ok != self.backup_instance.is_to_remote):
 
             update_info = {'backup_status': 5}
         self.update_backup_info(update_info)
 
+        ToolLog.log_info('backup complete !')
+
         return backup_data_is_ok
 
-    def run_mysqldump(self):
-        """使用mysqldump备份
-        """
-        pass
-
-    def run_mysqlpump(self):
-        """使用mysqldump备份
-        @TODO
-        """
-        pass
-
-    def run_mydumper(self):
-        """使用mysqldump备份
-        @TODO
-        """
-        pass
-       
-               
     def run(self):
         """执行备份主逻辑
-        1.选择备份工具
         """
 
         # 开始备份
@@ -360,33 +367,18 @@ class BackupMain(object):
         update_info = {'backup_status': 2}
         self.update_backup_info(update_info)
 
-        # 更具不同的备份方式选择不同的备份工具
-        # 1、mysqldump, 2、mysqlpump, 3、mydumper, 4、xtrabackup
-        if self.backup_instance.backup_tool == 1: # mysqldump
-            pass
-        elif self.backup_instance.backup_tool == 2: # mysqlpump
-            pass
-        elif self.backup_instance.backup_tool == 3: # mydumper
-            pass
-        elif self.backup_instance.backup_tool == 4: # xtrabackup
-            # 判断备份的类型是什么类型
-            if self.backup_instance.backup_type == 1: # 强制指定实例备份
-                self.run_xtrabackup()  
-            elif self.backup_instance.backup_type == 2: # 强制寻找备份
-                pass
-            elif self.backup_instance.backup_type == 3: # 最优型备份
-                pass
-            else:
-                return False
-        else: # 如果没有备份工具 则退出失败
-            ToolLog.log_error('!!!can not find backup tool!!!')
-            ToolLog.log_error('sys exit.')
-            # 记录备份失败信息
-            update_info = {'message': '没有找到相应的备份工具'}
-            is_ok, self.backup_info = self.update_backup_info(update_info)
+        # 创建备份工具实例
+        self.create_backup_tool()
 
-            Toolkit.send_mail()
-            sys.exit(1)
+        # 判断备份的类型是什么类型, 并根据不同类型执行备份
+        if self.backup_instance.backup_type == 1: # 强制指定实例备份
+            self.run_backup()  
+        elif self.backup_instance.backup_type == 2: # 强制寻找备份
+            pass
+        elif self.backup_instance.backup_type == 3: # 最优型备份
+            pass
+        else:
+            return False
 
     def update_backup_info(self, update_info={}):
         """更新备份信息
