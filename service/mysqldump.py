@@ -8,6 +8,7 @@ home = "{path}/..".format(path=path)
 sys.path.append(home)
 
 from backup_base import BackupBase
+from backup_base import BackupBase
 
 class Mysqldump(BackupBase):
     """备份的父类

@@ -108,7 +108,7 @@ class BackupMain(object):
             sys.exit(1)
 
     def xtrabackup(self):
-        """使用Xtrabckup备份文件
+        """使用Xtrabckup备份数据
         """
         # 是否有保存my_cnf来创建Xtrabackup实例
         self.backup_tool = Xtrabackup(self.backup_name,
@@ -119,7 +119,6 @@ class BackupMain(object):
         ToolLog.log_info('use backup tool is: {tool}'.format(
                                   tool = self.backup_instance.backup_tool_file))
 
-        
         # 开始执行备份
         is_ok = self.backup_tool.backup_data(
                         param = self.backup_instance.backup_tool_param,
@@ -136,6 +135,34 @@ class BackupMain(object):
             update_info = {'backup_data_status': 3}
             self.update_backup_info(update_info)
 
+        return is_ok
+
+    def mysqldump(self):
+        """使用mysqldump备份数据
+        """
+        self.backup_tool = Mysqldump(self.backup_name,
+                  self.backup_dir,
+                  backup_bin_file = self.backup_instance.backup_tool_file)
+
+        ToolLog.log_info('use backup tool is: {tool}'.format(
+                                  tool = self.backup_instance.backup_tool_file))
+
+        # 开始执行备份
+        is_ok = self.backup_tool.backup_data(
+                        param = self.backup_instance.backup_tool_param,
+                        **self.db_conf)
+
+        # 如果备份失败世界返回
+        if not is_ok:
+            ToolLog.log_error('mysqldump fail !!!')
+            # 记录备份失败信息
+            update_info = {'message': '备份数据失败', 'backup_data_status': 2}
+            self.update_backup_info(update_info)
+
+        else: # 记录备份成功
+            update_info = {'backup_data_status': 3}
+            self.update_backup_info(update_info)
+        
         return is_ok
 
     def backup_binlog(self):
@@ -294,8 +321,6 @@ class BackupMain(object):
         # 1 备份数据
         backup_data_is_ok = self.xtrabackup()
         if not backup_data_is_ok: # 备份失败
-            update_info = {'backup_status': 4}
-            self.update_backup_info(update_info)
             return backup_data_is_ok
 
         # 2 备份 binlog 
@@ -335,7 +360,8 @@ class BackupMain(object):
     def run_mysqldump(self):
         """使用mysqldump备份
         """
-        pass
+        backup_data_is_ok = self.mysqldump()
+        
 
     def run_mysqlpump(self):
         """使用mysqldump备份
@@ -363,7 +389,15 @@ class BackupMain(object):
         # 更具不同的备份方式选择不同的备份工具
         # 1、mysqldump, 2、mysqlpump, 3、mydumper, 4、xtrabackup
         if self.backup_instance.backup_tool == 1: # mysqldump
-            pass
+            # 判断备份的类型是什么类型
+            if self.backup_instance.backup_type == 1: # 强制指定实例备份
+                self.run_mysqldump()  
+            elif self.backup_instance.backup_type == 2: # 强制寻找备份
+                pass
+            elif self.backup_instance.backup_type == 3: # 最优型备份
+                pass
+            else:
+                return False
         elif self.backup_instance.backup_tool == 2: # mysqlpump
             pass
         elif self.backup_instance.backup_tool == 3: # mydumper

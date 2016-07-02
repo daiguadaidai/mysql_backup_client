@@ -68,8 +68,17 @@ class BackupBase(object):
         Return:
             True/False 返回命令执行成功还是失败
         """
+        # 创建备份目录
+        if self.dir:
+            mkdir_cmd = 'mkdir -p {dir}'.format(dir = self.dir)
+            Toolkit.exec_cmd(mkdir_cmd)
 
         is_ok = Toolkit.exec_cmd(cmd)
+
+        if is_ok:
+            ToolLog.log_info('backup successful!')
+        else:
+            ToolLog.log_error('backup fail !!!')
 
         return is_ok
 
