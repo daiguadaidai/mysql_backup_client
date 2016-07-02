@@ -8,7 +8,7 @@ home = "{path}/..".format(path=path)
 sys.path.append(home)
 
 from backup_base import BackupBase
-from backup_base import BackupBase
+from tool.toolkit import Toolkit
 
 class Mysqldump(BackupBase):
     """备份的父类
@@ -28,7 +28,8 @@ class Mysqldump(BackupBase):
         send_binlog: 将binlog日志发送到远程
     """
 
-    def __init__(self, name, dir, backup_bin_file='mysqldump'):
+    def __init__(self, name, dir, backup_bin_file='mysqldump',
+                       my_cnf = '/etc/my.cnf'):
         """构造方法, 调用父类(BackupBase)的构造方法
         Attribute:
             _name: 备份集的名称
@@ -45,6 +46,7 @@ class Mysqldump(BackupBase):
         """
         super(Mysqldump, self).__init__(name, dir)
         self._backup_bin_file = backup_bin_file
+        self.my_cnf = my_cnf
 
     def backup_data(self, username='', password='', host='127.0.0.1',
                           port=3306, param=''):
@@ -74,6 +76,32 @@ class Mysqldump(BackupBase):
         )
         is_ok = super(Mysqldump, self).backup_data(cmd)
          
+        return is_ok
+
+    def backup_mycnf(self, backup_mycnf_file=None):
+        """备份MySQL配置文件
+        通过传入的my.cnf备份位置, 执行操作系统cp命令实现备份.
+
+        Args:
+            backup_mycnf_file: MySQL配置文件备份路径
+        Return: 
+            True/False 返回是否备份成功
+        Raise: None
+        """
+        # 先将备份 my.cnf路径进行赋值给backup_mycnf_file
+        if backup_mycnf_file:
+            self.backup_mycnf_file = backup_mycnf_file
+        else:
+            self.backup_mycnf_file = '{backup_dir}/my.cnf'.format(
+                       backup_dir = super(Mysqldump, self).dir)
+
+        is_ok = False
+        # 构造 cp 备份命令
+        cmd = 'cp {my_cnf} {backup_mycnf_file}'.format(
+                             my_cnf = self.my_cnf,
+                             backup_mycnf_file = self.backup_mycnf_file)
+        is_ok = Toolkit.exec_cmd(cmd)
+
         return is_ok
 
     def valid(self, host = '127.0.0.1', username = '', password = ''):
