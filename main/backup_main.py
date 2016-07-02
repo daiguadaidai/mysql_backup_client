@@ -293,7 +293,9 @@ class BackupMain(object):
         """
         # 1 备份数据
         backup_data_is_ok = self.xtrabackup()
-        if not backup_data_is_ok:
+        if not backup_data_is_ok: # 备份失败
+            update_info = {'backup_status': 4}
+            self.update_backup_info(update_info)
             return backup_data_is_ok
 
         # 2 备份 binlog 
@@ -316,6 +318,18 @@ class BackupMain(object):
         # 7 发送备份binlog值远程
         send_binlog_is_ok = self.send_binlog()
 
+        # 8 更新备份状态信息
+        update_info = {'backup_status': 3} # 初始设置为备份完成
+
+        # 如果遇到备份返回信息和指定的备份形式不一样则设置为备份完成但和指定的有差异
+        if (backup_binlog_is_ok != self.backup_instance.is_binlog or
+            compress_is_ok == self.backup_instance.is_compress or
+            send_data_is_ok == self.backup_instance.is_to_remote or
+            send_binlog_is_ok == self.backup_instance.is_to_remote):
+
+            update_info = {'backup_status': 5}
+        self.update_backup_info(update_info)
+
         return backup_data_is_ok
 
     def run_mysqldump(self):
@@ -323,13 +337,13 @@ class BackupMain(object):
         """
         pass
 
-    def run_mysqlpump(self)
+    def run_mysqlpump(self):
         """使用mysqldump备份
         @TODO
         """
         pass
 
-    def run_mydumper(self)
+    def run_mydumper(self):
         """使用mysqldump备份
         @TODO
         """
