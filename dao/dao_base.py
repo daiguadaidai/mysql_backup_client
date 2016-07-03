@@ -13,17 +13,18 @@ from model.models import *
 from sqlalchemy.orm.exc import NoResultFound
 from tool.toolkit import Toolkit
 from tool.tool_log import ToolLog
+from tool.tool_conf import ToolConf
 
 
 class DaoBase(object):
     """操作系统的数据库操作类"""
    
     def __init__(self):
-        self.db_conf = {'username': 'HH',
-                        'password': 'oracle',
-                        'host': '127.0.0.1',
-                        'port': 3306,
-                        'database': 'my_free'}
+        # 默认配置文件路径 [/xxx/]tool/../conf/db.cnf
+        tool_conf = ToolConf()
+        self.db_conf = tool_conf.get_conf_dict('mysql')
+        ToolLog.log_info('db config: {conf}'.format(conf = self.db_conf))
+        
         self.mysql_conn = MysqlConn(**self.db_conf)
 
     def insert_obj(self, obj):
