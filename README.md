@@ -66,10 +66,11 @@ MySQL 备份客户端，主要用于日常对MySQL的备份。
 6、主程序参数讲解
 文件：main/backup_main.py
 方法：
-def main():
-    backup_main = BackupMain(1)
-    backup_main.save_begin_backup_info()
-    backup_main.run()
+
+    def main():
+        backup_main = BackupMain(1)
+        backup_main.save_begin_backup_info()
+        backup_main.run()
     
 > 需要注意的是 BackupMain(1)，这边的1代表的是需要备份的 MySQL 实例信息ID，也就是表sys_mysql_backup_instance中记录的主键ID。
 
@@ -92,4 +93,5 @@ def main():
 >     
 >     -- 生成 model
 >     sqlautocode MySQL://username:password@host:port/database -o model_name.py -t table_name -e --force
+
 
