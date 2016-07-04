@@ -8,6 +8,8 @@ MySQL 备份客户端，主要用于日常对MySQL的备份。
 
 需要相关的MySQL ORM模块
 
+    $ yum install lzma libffi-devel -y
+    $ pip install paramiko
     $ pip install sqlalchemy
     $ pip install MySQL-python
 
