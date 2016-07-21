@@ -7,8 +7,22 @@ Base = declarative_base()
 metadata = Base.metadata
 
 
-class SysMysqlBackupInfo(Base):
-    __tablename__ = 'sys_mysql_backup_info'
+class CmdbO(Base):
+    __tablename__ = 'cmdb_os'
+
+    os_id = Column(Integer, primary_key=True)
+    hostname = Column(String(50), nullable=False, server_default=text("''"))
+    alias = Column(String(40), nullable=False, server_default=text("''"))
+    ip = Column(Integer, nullable=False, server_default=text("'0'"))
+    username = Column(String(30), nullable=False, server_default=text("''"))
+    password = Column(String(200), nullable=False, server_default=text("''"))
+    remark = Column(String(50), nullable=False, server_default=text("''"))
+    create_time = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
+    update_time = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+
+
+class DbmpMysqlBackupInfo(Base):
+    __tablename__ = 'dbmp_mysql_backup_info'
 
     mysql_backup_info_id = Column(Integer, primary_key=True)
     mysql_instance_id = Column(Integer, nullable=False, index=True)
@@ -20,7 +34,8 @@ class SysMysqlBackupInfo(Base):
     trans_binlog_status = Column(Integer, nullable=False, server_default=text("'1'"))
     compress_status = Column(Integer, nullable=False, server_default=text("'1'"))
     thread_id = Column(Integer, nullable=False, server_default=text("'-1'"))
-    backup_folder = Column(String(50), nullable=False, server_default=text("''"))
+    backup_dir = Column(String(250), nullable=False, server_default=text("''"))
+    remote_backup_dir = Column(String(250), nullable=False, server_default=text("''"))
     backup_size = Column(BigInteger, nullable=False, server_default=text("'0'"))
     backup_start_time = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
     backup_end_time = Column(DateTime)
@@ -29,10 +44,12 @@ class SysMysqlBackupInfo(Base):
     trans_start_time = Column(DateTime)
     trans_end_time = Column(DateTime)
     message = Column(String(50), nullable=False, server_default=text("''"))
+    create_time = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
+    update_time = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
 
 
-class SysMysqlBackupInstance(Base):
-    __tablename__ = 'sys_mysql_backup_instance'
+class DbmpMysqlBackupInstance(Base):
+    __tablename__ = 'dbmp_mysql_backup_instance'
 
     mysql_backup_instance_id = Column(Integer, primary_key=True)
     mysql_instance_id = Column(Integer, nullable=False, unique=True)
@@ -50,8 +67,8 @@ class SysMysqlBackupInstance(Base):
     update_time = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
 
 
-class SysMysqlBackupRemote(Base):
-    __tablename__ = 'sys_mysql_backup_remote'
+class DbmpMysqlBackupRemote(Base):
+    __tablename__ = 'dbmp_mysql_backup_remote'
 
     mysql_backup_remote_id = Column(Integer, primary_key=True)
     os_id = Column(Integer, nullable=False, index=True)
@@ -61,8 +78,8 @@ class SysMysqlBackupRemote(Base):
     update_time = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
 
 
-class SysMysqlBusinessGroup(Base):
-    __tablename__ = 'sys_mysql_business_group'
+class DbmpMysqlBusinessGroup(Base):
+    __tablename__ = 'dbmp_mysql_business_group'
 
     mysql_business_group_id = Column(Integer, primary_key=True)
     alias = Column(String(40), nullable=False, server_default=text("''"))
@@ -71,8 +88,8 @@ class SysMysqlBusinessGroup(Base):
     update_time = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
 
 
-class SysMysqlHaGroup(Base):
-    __tablename__ = 'sys_mysql_ha_group'
+class DbmpMysqlHaGroup(Base):
+    __tablename__ = 'dbmp_mysql_ha_group'
 
     mysql_ha_group_id = Column(Integer, primary_key=True)
     alias = Column(String(40), nullable=False, server_default=text("''"))
@@ -81,8 +98,8 @@ class SysMysqlHaGroup(Base):
     update_time = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
 
 
-class SysMysqlHaGroupDetail(Base):
-    __tablename__ = 'sys_mysql_ha_group_detail'
+class DbmpMysqlHaGroupDetail(Base):
+    __tablename__ = 'dbmp_mysql_ha_group_detail'
 
     mysql_ha_group_detail_id = Column(Integer, primary_key=True)
     mysql_instance_id = Column(Integer, nullable=False, unique=True)
@@ -92,8 +109,8 @@ class SysMysqlHaGroupDetail(Base):
     update_time = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
 
 
-class SysMysqlInstance(Base):
-    __tablename__ = 'sys_mysql_instance'
+class DbmpMysqlInstance(Base):
+    __tablename__ = 'dbmp_mysql_instance'
 
     mysql_instance_id = Column(Integer, primary_key=True)
     os_id = Column(Integer, nullable=False, index=True)
@@ -106,25 +123,11 @@ class SysMysqlInstance(Base):
     update_time = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
 
 
-class SysMysqlInstanceInfo(Base):
-    __tablename__ = 'sys_mysql_instance_info'
+class DbmpMysqlInstanceInfo(Base):
+    __tablename__ = 'dbmp_mysql_instance_info'
 
     mysql_instance_info_id = Column(Integer, primary_key=True)
     mysql_instance_id = Column(Integer, nullable=False, index=True)
     my_cnf_path = Column(String(200), nullable=False, server_default=text("''"))
-    create_time = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
-    update_time = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
-
-
-class SysO(Base):
-    __tablename__ = 'sys_os'
-
-    os_id = Column(Integer, primary_key=True)
-    hostname = Column(String(50), nullable=False, server_default=text("''"))
-    alias = Column(String(40), nullable=False, server_default=text("''"))
-    ip = Column(Integer, nullable=False, server_default=text("'0'"))
-    username = Column(String(30), nullable=False, server_default=text("''"))
-    password = Column(String(200), nullable=False, server_default=text("''"))
-    remark = Column(String(50), nullable=False, server_default=text("''"))
     create_time = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
     update_time = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))

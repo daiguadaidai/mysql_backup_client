@@ -61,14 +61,14 @@ class DaoBase(object):
     def get_obj_by_pri(self, obj, pri_value, cols=[]):
         """通过id获得数据
         Args:
-            pri_value: sys_os 表的id值
+            pri_value: cmdb_os 表的id值
             cols: 需要的字段
             obj: model 类的字符串
-                如: 'SysO'
+                如: 'CmdbO'
             key: model 的主键字符串
                 如: 'os_id'
         Return: 
-            obj: 返回一个SysO 对象
+            obj: 返回一个CmdbO 对象
         Raise: None
         """
 
@@ -104,9 +104,9 @@ class DaoBase(object):
         """通过id获得数据
         Args:
             obj: model 类的字符串
-                如: 'SysO'
+                如: 'CmdbO'
             name: 字段
-                如: SysO.name
+                如: CmdbO.name
             value: 制度按
             cols: 需要的字段
         Return: 
@@ -138,7 +138,7 @@ class DaoBase(object):
         """通过id跟新数据
         Args:
             obj: model 类
-                如: 'SysO'
+                如: 'CmdbO'
             value: 主键id值
             update_info: 跟新的信息就向 set 后边的信息
                 {'name': 'aa', 'age': 12}
@@ -147,7 +147,7 @@ class DaoBase(object):
         Raise: None
         """
         self.session = self.mysql_conn.get_session()
-        sys_os = None
+        cmdb_os = None
 
         # 构造主键名称, 这边的主键指的是一个增加的主键
         primary_key = obj.__table__.primary_key.columns.items()[0][0]
@@ -246,22 +246,22 @@ class DaoBase(object):
 def main():
     
     """
-    # 查询 SysO 对象
-    dao_sys_os = DaoSysO()
-    cols = [SysO.os_id, SysO.username, SysO.password]
-    sys_os = dao_sys_os.get_obj_by_pri(1, cols)
-    print sys_os.os_id
+    # 查询 CmdbO 对象
+    dao_cmdb_os = DaoCmdbO()
+    cols = [CmdbO.os_id, CmdbO.username, CmdbO.password]
+    cmdb_os = dao_cmdb_os.get_obj_by_pri(1, cols)
+    print cmdb_os.os_id
     """
 
     # 插入一个对象
-    dao_sys_os = DaoSysO()
-    sys_os = SysO(hostname = 'normal_11',
+    dao_cmdb_os = DaoCmdbO()
+    cmdb_os = CmdbO(hostname = 'normal_11',
                   alias = 'normal_11',
                   ip = Toolkit.ip2num('192.168.137.11'),
                   username = 'root',
                   password = 'oracle',
                   remark = '虚拟主机 normal 11')
-    print dao_sys_os.insert_obj(sys_os)
+    print dao_cmdb_os.insert_obj(cmdb_os)
     
 
 if __name__ == '__main__':

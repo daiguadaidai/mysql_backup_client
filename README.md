@@ -40,29 +40,29 @@ MySQL 备份客户端，主要用于日常对MySQL的备份。
 具体的字段名请对照 my_free.sql 或 使用 SHOW CREATE TABLE xxx; 来查看
 
     -- 添加操作系统信息
-    INSERT INTO sys_os VALUES(1, 'hostname', 'alias', inet_aton('xxx.xxx.xxx.xxx'), 'username', 'password', 'this is remark', NOW(), NOW());
+    INSERT INTO cmdb_os VALUES(1, 'hostname', 'alias', inet_aton('xxx.xxx.xxx.xxx'), 'username', 'password', 'this is remark', NOW(), NOW());
     
     -- 添加 MySQL 实例信息
-    INSERT INTO sys_mysql_instance VALUES(1, 1, inet_aton('xxx.xxx.xxx.xxx'), 3306, 'username', 'password', '数据库实例信息', NOW(), NOW());
+    INSERT INTO dbmp_mysql_instance VALUES(1, 1, inet_aton('xxx.xxx.xxx.xxx'), 3306, 'username', 'password', '数据库实例信息', NOW(), NOW());
     
     -- 添加 MySQL 实例额外信息
-    INSERT INTO sys_mysql_instance_info VALUES(1, 1, '/etc/my_3306.cnf', NOW(), NOW());
+    INSERT INTO dbmp_mysql_instance_info VALUES(1, 1, '/etc/my_3306.cnf', NOW(), NOW());
     
     -- 添加需要备份的 MySQL 实例信息
-    INSERT INTO sys_mysql_backup_instance VALUES(1, 1, 4, 1, 1, 1, 1, 1, '/tmp/backup', '/usr/local/percona-xtrabackup/bin/innobackupex', '', 'xtrabackup', NOW(), NOW());
+    INSERT INTO dbmp_mysql_backup_instance VALUES(1, 1, 4, 1, 1, 1, 1, 1, '/tmp/backup', '/usr/local/percona-xtrabackup/bin/innobackupex', '', 'xtrabackup', NOW(), NOW());
     
     -- 添加将备份传输到远程的目录
-    INSERT INTO sys_mysql_backup_remote VALUES(1, 1, 1, '/u01/backup', NOW(), NOW());
+    INSERT INTO dbmp_mysql_backup_remote VALUES(1, 1, 1, '/u01/backup', NOW(), NOW());
 
 5、**配置数据库源信息数据库的参数**
 
 文件：conf/db.cnf
 
     [mysql]
-    username = HH
-    password = oracle
+    username = root
+    password = root
     database = my_free
-    host = 192.168.137.11
+    host = xxx.xxx.xxx
     port = 3306
 
 6、主程序参数讲解
@@ -88,12 +88,12 @@ MySQL 备份客户端，主要用于日常对MySQL的备份。
 
     tail -f log/backup.log
 
-> **Tip**：如果需要对`MySQL`表映射成`sqlalchemy`的`model`就需要安装`sqlautocode` 的`Python`模块
+> **Tip**：如果需要对`MySQL`表映射成`sqlalchemy`的`model`就需要安装`sqlacodegen` 的`Python`模块
 > 
 >     -- 安装 sqlautocode 模块
->     $ pip install sqlautocode
+>     $ pip install sqlacodegen
 >     
 >     -- 生成 model
->     sqlautocode MySQL://username:password@host:port/database -o model_name.py -t table_name -e --force
+>     sqlacodegen mysql://'users':"pass"@xx.xx.xx.xx:3306/db_name --outfile tables.py
 
 

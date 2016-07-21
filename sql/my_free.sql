@@ -24,13 +24,34 @@ CREATE DATABASE /*!32312 IF NOT EXISTS*/ `my_free` /*!40100 DEFAULT CHARACTER SE
 USE `my_free`;
 
 --
--- Table structure for table `sys_mysql_backup_info`
+-- Table structure for table `cmdb_os`
 --
 
-DROP TABLE IF EXISTS `sys_mysql_backup_info`;
+DROP TABLE IF EXISTS `cmdb_os`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `sys_mysql_backup_info` (
+CREATE TABLE `cmdb_os` (
+  `os_id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '操作系统ID',
+  `hostname` varchar(50) NOT NULL DEFAULT '' COMMENT '操作系统的hostname信息',
+  `alias` varchar(40) NOT NULL DEFAULT '' COMMENT '别名',
+  `ip` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '操作系统IP',
+  `username` varchar(30) NOT NULL DEFAULT '' COMMENT '用于登陆操作系统执行一些命令的用户',
+  `password` varchar(200) NOT NULL DEFAULT '' COMMENT '登陆用户密码，是个可逆的加密串',
+  `remark` varchar(50) NOT NULL DEFAULT '' COMMENT '备注',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`os_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8 COMMENT='操作系统信息';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `dbmp_mysql_backup_info`
+--
+
+DROP TABLE IF EXISTS `dbmp_mysql_backup_info`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `dbmp_mysql_backup_info` (
   `mysql_backup_info_id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '备份过程信息ID',
   `mysql_instance_id` int(10) unsigned NOT NULL COMMENT 'MySQL实例ID',
   `backup_status` tinyint(3) unsigned NOT NULL DEFAULT '1' COMMENT '备份状态：1、未备份，2、正在备份，3、备份完成，4、备份失败，5、备份完成但和指定的有差异',
@@ -41,7 +62,8 @@ CREATE TABLE `sys_mysql_backup_info` (
   `trans_binlog_status` tinyint(3) unsigned NOT NULL DEFAULT '1' COMMENT '备份binlog远程传输状态：1、未传输，2、传输失败，3、传输完成',
   `compress_status` tinyint(4) NOT NULL DEFAULT '1' COMMENT 'binlog备份状态:1、未压缩，2、压缩失败，3、压缩完成',
   `thread_id` int(11) NOT NULL DEFAULT '-1' COMMENT '备份操作系统进程ID',
-  `backup_folder` varchar(50) NOT NULL DEFAULT '' COMMENT '备份文件夹名称',
+  `backup_dir` varchar(250) NOT NULL DEFAULT '' COMMENT '本地备份文件夹名称',
+  `remote_backup_dir` varchar(250) NOT NULL DEFAULT '' COMMENT '远程备份文件夹名称',
   `backup_size` bigint(20) unsigned NOT NULL DEFAULT '0' COMMENT '备份集大小',
   `backup_start_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '备份开始时间',
   `backup_end_time` datetime DEFAULT NULL COMMENT '备份结束时间',
@@ -50,19 +72,21 @@ CREATE TABLE `sys_mysql_backup_info` (
   `trans_start_time` datetime DEFAULT NULL COMMENT '传输至远程开始时间',
   `trans_end_time` datetime DEFAULT NULL COMMENT '传输至远程结束时间',
   `message` varchar(50) NOT NULL DEFAULT '' COMMENT '备份信息',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`mysql_backup_info_id`),
   KEY `idx$mysql_instance_id` (`mysql_instance_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COMMENT='描述整个备份过程的信息表';
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8 COMMENT='描述整个备份过程的信息表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `sys_mysql_backup_instance`
+-- Table structure for table `dbmp_mysql_backup_instance`
 --
 
-DROP TABLE IF EXISTS `sys_mysql_backup_instance`;
+DROP TABLE IF EXISTS `dbmp_mysql_backup_instance`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `sys_mysql_backup_instance` (
+CREATE TABLE `dbmp_mysql_backup_instance` (
   `mysql_backup_instance_id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '备份实例ID',
   `mysql_instance_id` int(10) unsigned NOT NULL COMMENT 'MySQL实例ID',
   `backup_tool` tinyint(3) unsigned NOT NULL DEFAULT '4' COMMENT '使用备份工具：1、mysqldump，2、mysqlpump、3、mydumper、4、xtrabackup',
@@ -83,13 +107,13 @@ CREATE TABLE `sys_mysql_backup_instance` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `sys_mysql_backup_remote`
+-- Table structure for table `dbmp_mysql_backup_remote`
 --
 
-DROP TABLE IF EXISTS `sys_mysql_backup_remote`;
+DROP TABLE IF EXISTS `dbmp_mysql_backup_remote`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `sys_mysql_backup_remote` (
+CREATE TABLE `dbmp_mysql_backup_remote` (
   `mysql_backup_remote_id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '备份传输到远程系统ID',
   `os_id` int(10) unsigned NOT NULL COMMENT '操作系统ID',
   `mysql_instance_id` int(10) unsigned NOT NULL COMMENT 'MySQL实例ID',
@@ -103,13 +127,13 @@ CREATE TABLE `sys_mysql_backup_remote` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `sys_mysql_business_group`
+-- Table structure for table `dbmp_mysql_business_group`
 --
 
-DROP TABLE IF EXISTS `sys_mysql_business_group`;
+DROP TABLE IF EXISTS `dbmp_mysql_business_group`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `sys_mysql_business_group` (
+CREATE TABLE `dbmp_mysql_business_group` (
   `mysql_business_group_id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '业务组ID',
   `alias` varchar(40) NOT NULL DEFAULT '' COMMENT '组别名',
   `remark` varchar(50) NOT NULL DEFAULT '' COMMENT '备注',
@@ -120,13 +144,13 @@ CREATE TABLE `sys_mysql_business_group` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `sys_mysql_ha_group`
+-- Table structure for table `dbmp_mysql_ha_group`
 --
 
-DROP TABLE IF EXISTS `sys_mysql_ha_group`;
+DROP TABLE IF EXISTS `dbmp_mysql_ha_group`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `sys_mysql_ha_group` (
+CREATE TABLE `dbmp_mysql_ha_group` (
   `mysql_ha_group_id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '高可用组ID',
   `alias` varchar(40) NOT NULL DEFAULT '' COMMENT '组别名',
   `remark` varchar(50) NOT NULL DEFAULT '' COMMENT '备注',
@@ -137,13 +161,13 @@ CREATE TABLE `sys_mysql_ha_group` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `sys_mysql_ha_group_detail`
+-- Table structure for table `dbmp_mysql_ha_group_detail`
 --
 
-DROP TABLE IF EXISTS `sys_mysql_ha_group_detail`;
+DROP TABLE IF EXISTS `dbmp_mysql_ha_group_detail`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `sys_mysql_ha_group_detail` (
+CREATE TABLE `dbmp_mysql_ha_group_detail` (
   `mysql_ha_group_detail_id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'HA GROUP MySQL 管理表',
   `mysql_instance_id` int(10) unsigned NOT NULL COMMENT 'MySQL实例ID',
   `mysql_ha_group_id` int(10) unsigned NOT NULL COMMENT '高可用组ID',
@@ -157,13 +181,13 @@ CREATE TABLE `sys_mysql_ha_group_detail` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `sys_mysql_instance`
+-- Table structure for table `dbmp_mysql_instance`
 --
 
-DROP TABLE IF EXISTS `sys_mysql_instance`;
+DROP TABLE IF EXISTS `dbmp_mysql_instance`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `sys_mysql_instance` (
+CREATE TABLE `dbmp_mysql_instance` (
   `mysql_instance_id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'MySQL实例ID',
   `os_id` int(10) unsigned NOT NULL COMMENT '操作系统ID',
   `host` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '链接MySQL HOST',
@@ -179,13 +203,13 @@ CREATE TABLE `sys_mysql_instance` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `sys_mysql_instance_info`
+-- Table structure for table `dbmp_mysql_instance_info`
 --
 
-DROP TABLE IF EXISTS `sys_mysql_instance_info`;
+DROP TABLE IF EXISTS `dbmp_mysql_instance_info`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `sys_mysql_instance_info` (
+CREATE TABLE `dbmp_mysql_instance_info` (
   `mysql_instance_info_id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'MySQL实例ID',
   `mysql_instance_id` int(10) unsigned NOT NULL COMMENT 'MySQL实例ID',
   `my_cnf_path` varchar(200) NOT NULL DEFAULT '' COMMENT 'my.cnf 文件路径',
@@ -194,27 +218,6 @@ CREATE TABLE `sys_mysql_instance_info` (
   PRIMARY KEY (`mysql_instance_info_id`),
   KEY `idx$mysql_instance_id` (`mysql_instance_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8 COMMENT='MySQL实例信息';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `sys_os`
---
-
-DROP TABLE IF EXISTS `sys_os`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `sys_os` (
-  `os_id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '操作系统ID',
-  `hostname` varchar(50) NOT NULL DEFAULT '' COMMENT '操作系统的hostname信息',
-  `alias` varchar(40) NOT NULL DEFAULT '' COMMENT '别名',
-  `ip` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '操作系统IP',
-  `username` varchar(30) NOT NULL DEFAULT '' COMMENT '用于登陆操作系统执行一些命令的用户',
-  `password` varchar(200) NOT NULL DEFAULT '' COMMENT '登陆用户密码，是个可逆的加密串',
-  `remark` varchar(50) NOT NULL DEFAULT '' COMMENT '备注',
-  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '创建时间',
-  PRIMARY KEY (`os_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8 COMMENT='操作系统信息';
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -226,4 +229,4 @@ CREATE TABLE `sys_os` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2016-07-02 22:36:10
+-- Dump completed on 2016-07-21 16:09:45

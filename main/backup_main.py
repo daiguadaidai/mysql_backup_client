@@ -7,7 +7,7 @@ path = os.path.split(os.path.realpath(sys.argv[0]))[0]
 home = "{path}/..".format(path=path)
 sys.path.append(home)
 
-import time
+from datetime import datetime
 from model.models import *
 from dao.dao_base import DaoBase
 from service.mysqldump import Mysqldump
@@ -27,13 +27,13 @@ class BackupMain(object):
 
         # 获得需要备份的 MySQL 实例信息
         self.backup_instance = self.dao_base.get_obj_by_pri(
-                                       SysMysqlBackupInstance,
+                                       DbmpMysqlBackupInstance,
                                        backup_instance_id)
 
-        # 获得数据库实例 sys_mysql_instance
+        # 获得数据库实例 dbmp_mysql_instance
         self.instance = self.dao_base.get_obj_by_pri(
-                                 SysMysqlInstance,
-                                 SysMysqlBackupInstance.mysql_instance_id)
+                                 DbmpMysqlInstance,
+                                 DbmpMysqlBackupInstance.mysql_instance_id)
 
         if not self.backup_instance or not self.backup_instance:
             ToolLog.log_error('cannot find backup instance or MySQL instance')
@@ -42,8 +42,8 @@ class BackupMain(object):
  
         # 获得MySQL instance 额外信息
         self.instance_infos = self.dao_base.get_objs_by_col(
-                                 SysMysqlInstanceInfo,
-                                 SysMysqlInstanceInfo.mysql_instance_id,
+                                 DbmpMysqlInstanceInfo,
+                                 DbmpMysqlInstanceInfo.mysql_instance_id,
                                  self.instance.mysql_instance_id)
         self.instance_info = None
         if self.instance_infos:
@@ -54,11 +54,11 @@ class BackupMain(object):
             self.backup_name = self.backup_instance.backup_name
 
         # 如果指定的是<强制指定实例备份>, 则不需要高可用实例
-        if self.backup_instance != 1:
+        if self.backup_instance.backup_type != 1:
             # 通过实例ID获得高可用 MySQL 实例组mysql_ha_group_id
-            cols = [SysMysqlHaGroupDetail.mysql_ha_group_id]
-            ha_instances = self.dao_base.get_objs_by_col(SysMysqlHaGroupDetail,
-                                        SysMysqlHaGroupDetail.mysql_instance_id,
+            cols = [DbmpMysqlHaGroupDetail.mysql_ha_group_id]
+            ha_instances = self.dao_base.get_objs_by_col(DbmpMysqlHaGroupDetail,
+                                        DbmpMysqlHaGroupDetail.mysql_instance_id,
                                         self.backup_instance.mysql_instance_id,
                                         cols = cols)
             ha_instance = None
@@ -66,8 +66,8 @@ class BackupMain(object):
                 ha_instance = ha_instances[0]
 
             # 通过高可用组ID mysql_ha_group_id获得所有高可用的实例
-            self.ha_instances = self.dao_base.get_objs_by_col(SysMysqlHaGroupDetail,
-                                        SysMysqlHaGroupDetail.mysql_ha_group_id,
+            self.ha_instances = self.dao_base.get_objs_by_col(DbmpMysqlHaGroupDetail,
+                                        DbmpMysqlHaGroupDetail.mysql_ha_group_id,
                                         ha_instance.mysql_ha_group_id)
 
         self.backup_instance_id = backup_instance_id
@@ -76,12 +76,20 @@ class BackupMain(object):
         if self.backup_instance.backup_name:
             self.backup_name = self.backup_instance.backup_name
         else:
-            self.backup_name = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
+            self.backup_name = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
-        self.backup_date = time.strftime("%Y-%m-%d", time.localtime())
-        self.backup_dir = '{dir}/{date}'.format(
+        self.backup_date = datetime.now().strftime('%Y-%m-%d')
+
+        # 备份目录格式 {指定的目录}/{备份日期}/{实例端口}
+        self.backup_dir = '{dir}/{date}/{port}'.format(
                                  dir = self.backup_instance.backup_dir,
-                                 date = self.backup_date)
+                                 date = self.backup_date,
+                                 port = self.instance.port)
+
+        # 获得完整的本地备份 目录 或 文件
+        self.backup_full_path = '{backup_dir}/{backup_name}'.format(
+                           backup_dir = self.backup_dir,
+                           backup_name = self.backup_name)
 
         # 设置MySQL实例信息
         self.db_conf = {
@@ -96,13 +104,15 @@ class BackupMain(object):
 
     def save_begin_backup_info(self):
         # 备份开始, 保存备份信息
-        backup_info = SysMysqlBackupInfo(
+        backup_info = DbmpMysqlBackupInfo(
                 mysql_instance_id = self.backup_instance.mysql_instance_id,
-                thread_id = os.getpid())
+                thread_id = os.getpid(),
+                backup_dir = self.backup_full_path)
+
         is_ok, self.backup_info = self.dao_base.insert_obj(backup_info)
 
         if not is_ok: # 如果保存失败则直接退出
-            ToolLog.log_error('!!!save sys_mysql_backup_info table fail!!!')
+            ToolLog.log_error('!!!save dbmp_mysql_backup_info table fail!!!')
             ToolLog.log_error('sys exit.')
             Toolkit.send_mail()
             sys.exit(1)
@@ -157,10 +167,12 @@ class BackupMain(object):
             # 记录备份失败信息
             update_info = {'message': '备份数据失败', 'backup_data_status': 2}
             self.update_backup_info(update_info)
-
         else: # 记录备份成功
             update_info = {'backup_data_status': 3}
             self.update_backup_info(update_info)
+
+        # 记录备份结束时间
+        self.update_backup_info({'backup_end_time': datetime.now()})
 
         return is_ok
 
@@ -216,8 +228,8 @@ class BackupMain(object):
         if self.backup_instance.is_to_remote:
             # 获得远程备份目录和远程OS主机ID
             backup_remotes = self.dao_base.get_objs_by_col(
-                                 SysMysqlBackupRemote,
-                                 SysMysqlBackupRemote.mysql_instance_id,
+                                 DbmpMysqlBackupRemote,
+                                 DbmpMysqlBackupRemote.mysql_instance_id,
                                  self.instance.mysql_instance_id)
 
             # 如果有数据则进行获取操作系统信息
@@ -228,10 +240,10 @@ class BackupMain(object):
             backup_remote = backup_remotes.pop()
 
             # 通过远程备份信息, 获得操作系统信息
-            sys_os = self.dao_base.get_obj_by_pri(
-                                     SysO,
+            cmdb_os = self.dao_base.get_obj_by_pri(
+                                     CmdbO,
                                      backup_remote.os_id)
-            if not sys_os: # 如果没有相关远程OS信息退出远程备份
+            if not cmdb_os: # 如果没有相关远程OS信息退出远程备份
                 return is_ok       
 
             # 构造出远程备份文件名
@@ -245,17 +257,26 @@ class BackupMain(object):
             parent_path, file_name = ToolSSH.get_file_path_and_name(
                                              local_file)
 
-            # 备份文件名
-            remote_file = '{remote_dir}/{date}/{file_name}'.format(
+            # 备份文件名: {指定的远程目录}/{备份日期}/{MySQL实例端口}/{备份名称}
+            remote_file = '{remote_dir}/{date}/{port}/{file_name}'.format(
                            remote_dir = backup_remote.remote_dir,
                            date = self.backup_date,
+                           port = self.instance.port,
                            file_name = file_name)
+
+            # 记录远程备份 目录 或 文件名
+            self.update_backup_info({'remote_backup_dir': remote_file})
+
+            # 记录发送开始时间
+            self.update_backup_info({'trans_start_time': datetime.now()})
 
             # 备份发送到远程
             is_ok = self.backup_tool.send_backup(remote_file = remote_file,
-                                    username = sys_os.username,
-                                    password = sys_os.password,
-                                    host = Toolkit.num2ip(sys_os.ip))
+                                    username = cmdb_os.username,
+                                    password = cmdb_os.password,
+                                    host = Toolkit.num2ip(cmdb_os.ip))
+            # 记录发送结束时间
+            self.update_backup_info({'trans_end_time': datetime.now()})
              
             update_info = {}
             if is_ok: # 传输数据到远程成功
@@ -277,8 +298,8 @@ class BackupMain(object):
             self.backup_instance.is_binlog): 
             # 获得远程备份目录和远程OS主机ID
             backup_remotes = self.dao_base.get_objs_by_col(
-                                 SysMysqlBackupRemote,
-                                 SysMysqlBackupRemote.mysql_instance_id,
+                                 DbmpMysqlBackupRemote,
+                                 DbmpMysqlBackupRemote.mysql_instance_id,
                                  self.instance.mysql_instance_id)
 
             # 如果有数据则进行获取操作系统信息
@@ -289,21 +310,23 @@ class BackupMain(object):
             backup_remote = backup_remotes.pop()
 
             # 通过远程备份信息, 获得操作系统信息
-            sys_os = self.dao_base.get_obj_by_pri(SysO,
+            cmdb_os = self.dao_base.get_obj_by_pri(CmdbO,
                                             backup_remote.os_id)
-            if not sys_os: # 如果没有相关远程OS信息退出远程备份
+            if not cmdb_os: # 如果没有相关远程OS信息退出远程备份
                 return is_ok       
 
             # 构造远程binlog目录
-            remote_binlog_dir = '{remote_dir}/{date}/binlog'.format(
+            # 结构: {指定的远程目录}/{备份日期}/{MySQL实例端口}/binlog
+            remote_binlog_dir = '{remote_dir}/{date}/{port}/binlog'.format(
                            remote_dir = backup_remote.remote_dir,
-                           date = self.backup_date)
+                           date = self.backup_date,
+                           port = self.instance.port)
             # 传输binlog至远程
             is_ok = self.backup_tool.send_binlog(
                                    remote_dir = remote_binlog_dir,
-                                   username = sys_os.username,
-                                   password = sys_os.password,
-                                   host = Toolkit.num2ip(sys_os.ip))
+                                   username = cmdb_os.username,
+                                   password = cmdb_os.password,
+                                   host = Toolkit.num2ip(cmdb_os.ip))
             update_info = {}
             if is_ok: # 传输binlog到远程成功
                 update_info['trans_binlog_status'] = 3
@@ -393,7 +416,7 @@ class BackupMain(object):
             return None
 
         is_ok, self.backup_info = self.dao_base.update_objs_by_pri(
-                                SysMysqlBackupInfo,
+                                DbmpMysqlBackupInfo,
                                 self.backup_info.mysql_backup_info_id,
                                 update_info = update_info)
         return is_ok
@@ -403,8 +426,6 @@ def main():
     backup_main = BackupMain(1)
     backup_main.save_begin_backup_info()
     backup_main.run()
-    
-
 
 
 if __name__ == '__main__':
